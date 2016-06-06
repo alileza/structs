@@ -302,3 +302,63 @@ func TestValidateStruct(t *testing.T) {
 		t.Error("t_string validation fail !")
 	}
 }
+
+func ExampleToMap() {
+
+	MyStruct := struct {
+		Name    string `json:"name"`
+		Age     int64
+		Address struct {
+			Hometown string
+		}
+	}{
+		Name: "Arya Stark",
+		Age:  14,
+		Address: struct {
+			Hometown string
+		}{
+			Hometown: "Winterfell",
+		},
+	}
+
+	myMap := ToMap(MyStruct)
+
+	fmt.Println(myMap["name"])
+	fmt.Println(myMap["Age"])
+	fmt.Println(myMap["Address"].(map[string]interface{})["Hometown"])
+	// Output: Arya Stark
+	// 14
+	// Winterfell
+}
+
+func TestToMap(t *testing.T) {
+	testStruct := struct {
+		Name    string `json:"name"`
+		Age     int64
+		Address struct {
+			Street string
+		}
+	}{
+		Name: "Ali",
+		Age:  22,
+	}
+	testStruct.Address.Street = "flamboyan"
+
+	result := ToMap(testStruct)
+
+	if _, ok := result["name"]; !ok {
+		t.Error("failed to use json tag!")
+	}
+
+	if val, ok := result["Age"]; !ok {
+		t.Error("failed to convert to map!")
+	} else if val.(int64) != 22 {
+		t.Error("failed to convert to map!")
+	}
+
+	if val, ok := result["Address"]; !ok {
+		t.Error("failed to convert multi-struct to map!")
+	} else if val.(map[string]interface{})["Street"] != "flamboyan" {
+		t.Error("failed to access multi-struct to map!")
+	}
+}

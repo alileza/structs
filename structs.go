@@ -135,3 +135,34 @@ func ValidateStruct(target interface{}) error {
 	}
 	return nil
 }
+
+// ToMap returns map following the input struct.
+func ToMap(target interface{}) map[string]interface{} {
+	var key string
+	result := make(map[string]interface{}, 1)
+	v := reflect.ValueOf(target)
+
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	for i := 0; i < v.NumField(); i++ {
+		if tag := v.Type().Field(i).Tag.Get("json"); tag != "" {
+			key = tag
+		} else {
+			key = v.Type().Field(i).Name
+		}
+		value := v.Field(i).Interface()
+		if value == nil {
+			value = nil
+		}
+		if reflect.TypeOf(value).Name() == "" {
+			result[key] = ToMap(value)
+		} else {
+			result[key] = value
+		}
+
+	}
+
+	return result
+}
