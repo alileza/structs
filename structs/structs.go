@@ -1,21 +1,34 @@
 package structs
 
 import (
+	"encoding/json"
 	"errors"
-	"net/url"
+	"io/ioutil"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 )
 
 const (
-	ok = "true"
+	ok        = "true"
+	statePost = "POST"
+	stateGet  = "GET"
 )
 
-// BindRequest will scann your struct and bind the request Values
+// BindRequest will scan your struct and bind the request Values / Body
 // into your struct according to `json` tag on struct.
-func BindRequest(values url.Values, items interface{}) error {
-	val := reflect.ValueOf(items)
+func BindRequest(request *http.Request, target interface{}) error {
+	if request.Method == statePost {
+		body, _ := ioutil.ReadAll(request.Body)
+		json.Unmarshal(body, &target)
+		return nil
+	}
+
+	request.ParseForm()
+	values := request.Form
+
+	val := reflect.ValueOf(target)
 
 	if val.Kind() != reflect.Ptr {
 		return errors.New("Target can't be value")
@@ -25,10 +38,6 @@ func BindRequest(values url.Values, items interface{}) error {
 	for i := 0; i < val.NumField(); i++ {
 		typeField := val.Type().Field(i)
 		tag := typeField.Tag.Get("json")
-		skip := typeField.Tag.Get("skip")
-		if skip == ok {
-			continue
-		}
 		t := typeField.Type.String()
 		if len(values[tag]) > 0 {
 			values[tag][0] = strings.TrimSpace(values[tag][0])
@@ -71,8 +80,8 @@ func BindRequest(values url.Values, items interface{}) error {
 }
 
 // ValidateStruct will validate struct if `required` tag is equal to true.
-func ValidateStruct(c interface{}) error {
-	val := reflect.ValueOf(c)
+func ValidateStruct(target interface{}) error {
+	val := reflect.ValueOf(target)
 
 	if val.Kind() != reflect.Ptr {
 		return errors.New("Target can't be value")

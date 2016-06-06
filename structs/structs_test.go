@@ -1,7 +1,13 @@
 package structs
 
 import (
+	"bytes"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"net/url"
+
 	"testing"
 )
 
@@ -16,21 +22,35 @@ type bindRequestStruct struct {
 	TBool        bool       `json:"t_bool" required:"true"`
 	TString      string     `json:"t_string" required:"true"`
 	TUnsupported complex128 `json:"t_unsupported" required:"true"`
-	TSkip        string     `json:"t_skip" skip:"true"`
 }
 
-type testCase struct {
-	Key    string
-	Input  string
-	Output interface{}
+func ExampleBindRequest() {
+	// Request example: http://localhost:9000?api_key=123456
+	values := url.Values{}
+	values.Add("api_key", "123456")
+	req := &http.Request{
+		Form: values,
+	}
+
+	var target struct {
+		APIKey string `json:"api_key"`
+	}
+	err := BindRequest(req, &target)
+	if err != nil {
+		log.Fatal("request parsing, failed.")
+	}
+	fmt.Println(target.APIKey)
+	// Output: 123456
 }
 
 func TestBindRequest(t *testing.T) {
+	req := &http.Request{}
 
 	var target bindRequestStruct
 	values := url.Values{}
 	values.Add("t_int", "123")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TInt != 123 {
 		t.Error("t_int mismatch !")
 	}
@@ -38,7 +58,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_int8", "123")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TInt8 != 123 {
 		t.Error("t_int8 mismatch !")
 	}
@@ -46,7 +67,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_int16", "123")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TInt16 != 123 {
 		t.Error("t_int16 mismatch !")
 	}
@@ -54,7 +76,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_int32", "123")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TInt32 != 123 {
 		t.Error("t_int32 mismatch !")
 	}
@@ -62,7 +85,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_int64", "123")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TInt64 != 123 {
 		t.Error("t_int64 mismatch !")
 	}
@@ -70,7 +94,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_float32", "123.221")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TFloat32 != 123.221 {
 		t.Error("t_float32 mismatch !")
 	}
@@ -78,7 +103,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_float64", "123.223841")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TFloat64 != 123.223841 {
 		t.Error("t_float64 mismatch !")
 	}
@@ -86,7 +112,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_string", "123.223841")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TString != "123.223841" {
 		t.Error("t_string mismatch !")
 	}
@@ -94,7 +121,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_bool", "true")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TBool != true {
 		t.Error("t_bool mismatch (true)!")
 	}
@@ -102,7 +130,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_bool", "1")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TBool != true {
 		t.Error("t_bool mismatch (1)!")
 	}
@@ -110,7 +139,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_bool", "false")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TBool != false {
 		t.Error("t_bool mismatch (false)!")
 	}
@@ -118,7 +148,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_bool", "")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TBool != false {
 		t.Error("t_bool mismatch ('')!")
 	}
@@ -126,23 +157,17 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_unsupported", "123.223841")
-	err := BindRequest(values, &target)
+	req.Form = values
+	err := BindRequest(req, &target)
 	if err.Error() != "complex128 type is not supported. You can skip this binding by changing json tag value to `-`" {
 		t.Error("Unsupported not working !")
 	}
 
 	target = bindRequestStruct{}
 	values = url.Values{}
-	values.Add("t_skip", "123.223841")
-	err = BindRequest(values, &target)
-	if target.TSkip == "123.223841" {
-		t.Error("skip not working !")
-	}
-
-	target = bindRequestStruct{}
-	values = url.Values{}
 	values.Add("t_int8", "123.223841")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TInt8 != 123 {
 		t.Error("float to int fail !")
 	}
@@ -150,7 +175,8 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_int64", "123192733.22338723841")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TInt64 != 123192733 {
 		t.Error("float to int fail !")
 	}
@@ -158,11 +184,72 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	values = url.Values{}
 	values.Add("t_float64", "123192733")
-	BindRequest(values, &target)
+	req.Form = values
+	BindRequest(req, &target)
 	if target.TFloat64 != 123192733 {
 		t.Error("int to float fail !")
 	}
 
+	target = bindRequestStruct{}
+	req.Method = "POST"
+	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_int8" : 123 }`)))
+	BindRequest(req, &target)
+	if target.TInt8 != 123 {
+		t.Error("post t_int8 read fail !")
+	}
+
+	target = bindRequestStruct{}
+	req.Method = "POST"
+	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_int64" : 93934123 }`)))
+	BindRequest(req, &target)
+	if target.TInt64 != 93934123 {
+		t.Error("post t_int64 read fail !")
+	}
+
+	target = bindRequestStruct{}
+	req.Method = "POST"
+	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_bool" : true }`)))
+	BindRequest(req, &target)
+	if target.TBool != true {
+		t.Error("post t_bool read fail !")
+	}
+
+	target = bindRequestStruct{}
+	req.Method = "POST"
+	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_bool" : false }`)))
+	BindRequest(req, &target)
+	if target.TBool != false {
+		t.Error("post t_bool read fail !")
+	}
+
+	target = bindRequestStruct{}
+	req.Method = "POST"
+	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_float32" : 123.3223 }`)))
+	BindRequest(req, &target)
+	if target.TFloat32 != 123.3223 {
+		t.Error("post t_float32 read fail !")
+	}
+
+	target = bindRequestStruct{}
+	req.Method = "POST"
+	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_string" : "123.3223" }`)))
+	BindRequest(req, &target)
+	if target.TString != "123.3223" {
+		t.Error("post t_string read fail !")
+	}
+
+}
+
+func ExampleValidateStruct() {
+
+	MyStruct := struct {
+		Name string `json:"name" required:"true"`
+	}{}
+
+	err := ValidateStruct(&MyStruct)
+
+	fmt.Println(err)
+	// Output: name is required.
 }
 
 func TestValidateStruct(t *testing.T) {
