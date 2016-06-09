@@ -163,12 +163,18 @@ func ToMap(target interface{}, opts ...bool) map[string]interface{} {
 	}
 
 	for i := 0; i < v.NumField(); i++ {
-		if tag := v.Type().Field(i).Tag.Get("json"); tag != "" {
+		tag := v.Type().Field(i).Tag.Get("json")
+		vval := v.Field(i)
+
+		if tag == "-" || !vval.CanInterface() {
+			continue
+		} else if tag != "" {
 			key = tag
 		} else {
 			key = v.Type().Field(i).Name
 		}
-		value := v.Field(i).Interface()
+
+		value := vval.Interface()
 		if value == nil {
 			value = nil
 		}
