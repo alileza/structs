@@ -389,8 +389,11 @@ func TestToMapString(t *testing.T) {
 	testStruct := struct {
 		Name       string `json:"name"`
 		Age        int64
-		FavNumbers []int
-		Address    struct {
+		FavNumbers interface{}
+		Friends    []struct {
+			Name int32
+		}
+		Address struct {
 			Street      string
 			Number      int32
 			Geolocation struct {
@@ -399,6 +402,13 @@ func TestToMapString(t *testing.T) {
 			}
 		}
 	}{
+		Friends: []struct {
+			Name int32
+		}{{
+			Name: 54,
+		}, {
+			Name: 34,
+		}},
 		FavNumbers: []int{15, 3, 22},
 		Name:       "Ali",
 		Age:        22,
@@ -409,6 +419,8 @@ func TestToMapString(t *testing.T) {
 	testStruct.Address.Geolocation.Lng = 89.22
 
 	result := ToMap(testStruct, true)
+	b, _ := json.Marshal(result)
+	fmt.Println(string(b))
 
 	if _, ok := result["name"]; !ok {
 		t.Error("failed to use json tag!")
