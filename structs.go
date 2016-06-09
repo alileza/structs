@@ -172,6 +172,7 @@ func ToMap(target interface{}, opts ...bool) map[string]interface{} {
 		if value == nil {
 			value = nil
 		}
+
 		if reflect.TypeOf(value).Kind() == reflect.Slice {
 			val := reflect.ValueOf(value)
 			tmp := make([]interface{}, val.Len())
@@ -188,7 +189,7 @@ func ToMap(target interface{}, opts ...bool) map[string]interface{} {
 				}
 			}
 			result[key] = tmp
-		} else if reflect.TypeOf(value).Name() == "" {
+		} else if reflect.TypeOf(value).Kind() == reflect.Struct {
 			result[key] = ToMap(value, dt)
 		} else if dt {
 			result[key] = toString(value)

@@ -386,6 +386,15 @@ func TestToMap(t *testing.T) {
 }
 
 func TestToMapString(t *testing.T) {
+	type userAddress struct {
+		Street      string
+		Number      int32
+		FootSize    int
+		Geolocation struct {
+			Lat float64
+			Lng float32
+		}
+	}
 	testStruct := struct {
 		Name       string `json:"name"`
 		Age        int64
@@ -393,14 +402,7 @@ func TestToMapString(t *testing.T) {
 		Friends    []struct {
 			Name int32
 		}
-		Address struct {
-			Street      string
-			Number      int32
-			Geolocation struct {
-				Lat float64
-				Lng float32
-			}
-		}
+		Address userAddress
 	}{
 		Friends: []struct {
 			Name int32
@@ -415,6 +417,7 @@ func TestToMapString(t *testing.T) {
 	}
 	testStruct.Address.Street = "flamboyan"
 	testStruct.Address.Number = 5
+	testStruct.Address.FootSize = 12335
 	testStruct.Address.Geolocation.Lat = 83.23
 	testStruct.Address.Geolocation.Lng = 89.22
 
