@@ -2,11 +2,13 @@ package structs
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"reflect"
 
 	"testing"
 )
@@ -309,38 +311,50 @@ func ExampleToMap() {
 		Name    string `json:"name"`
 		Age     int64
 		Address struct {
-			Hometown string
+			Hometown  string
+			Latitude  float64
+			Longitude float64
 		}
 	}{
 		Name: "Arya Stark",
 		Age:  14,
 		Address: struct {
-			Hometown string
+			Hometown  string
+			Latitude  float64
+			Longitude float64
 		}{
 			Hometown: "Winterfell",
+			Latitude: 12.32,
 		},
 	}
 
 	myMap := ToMap(MyStruct)
+	myMapStr := ToMap(MyStruct, true)
+	obj, _ := json.Marshal(myMapStr)
 
 	fmt.Println(myMap["name"])
 	fmt.Println(myMap["Age"])
 	fmt.Println(myMap["Address"].(map[string]interface{})["Hometown"])
+	fmt.Println(string(obj))
 	// Output: Arya Stark
 	// 14
 	// Winterfell
+	// {"Address":{"Hometown":"Winterfell","Latitude":"12.32","Longitude":"0.00"},"Age":"14","name":"Arya Stark"}
+
 }
 
 func TestToMap(t *testing.T) {
 	testStruct := struct {
-		Name    string `json:"name"`
-		Age     int64
-		Address struct {
+		Name       string `json:"name"`
+		Age        int64
+		FavNumbers []int
+		Address    struct {
 			Street string
 		}
 	}{
-		Name: "Ali",
-		Age:  22,
+		Name:       "Ali",
+		Age:        22,
+		FavNumbers: []int{15, 3, 22},
 	}
 	testStruct.Address.Street = "flamboyan"
 
@@ -360,5 +374,75 @@ func TestToMap(t *testing.T) {
 		t.Error("failed to convert multi-struct to map!")
 	} else if val.(map[string]interface{})["Street"] != "flamboyan" {
 		t.Error("failed to access multi-struct to map!")
+	}
+
+	if val, ok := result["FavNumbers"]; !ok {
+		t.Error("failed to handle slice!")
+	} else if reflect.ValueOf(val).Index(0).Interface() != 15 {
+		t.Error("failed to handle slice!")
+	} else if reflect.ValueOf(val).Index(2).Interface() != 22 {
+		t.Error("failed to handle slice!")
+	}
+}
+
+func TestToMapString(t *testing.T) {
+	testStruct := struct {
+		Name       string `json:"name"`
+		Age        int64
+		FavNumbers []int
+		Address    struct {
+			Street      string
+			Number      int32
+			Geolocation struct {
+				Lat float64
+				Lng float32
+			}
+		}
+	}{
+		FavNumbers: []int{15, 3, 22},
+		Name:       "Ali",
+		Age:        22,
+	}
+	testStruct.Address.Street = "flamboyan"
+	testStruct.Address.Number = 5
+	testStruct.Address.Geolocation.Lat = 83.23
+	testStruct.Address.Geolocation.Lng = 89.22
+
+	result := ToMap(testStruct, true)
+
+	if _, ok := result["name"]; !ok {
+		t.Error("failed to use json tag!")
+	}
+
+	if val, ok := result["Age"]; !ok {
+		t.Error("failed to convert to map!")
+	} else if val.(string) != "22" {
+		t.Error("failed to convert to string!")
+	}
+
+	val, ok := result["Address"]
+
+	if !ok {
+		t.Error("failed to convert multi-struct to map!")
+	}
+
+	if val.(map[string]interface{})["Number"] != "5" {
+		t.Error("failed to access multi-struct int to string!")
+	}
+
+	if val.(map[string]interface{})["Geolocation"].(map[string]interface{})["Lat"] != "83.23" {
+		t.Error("failed to access double multi-struct float to string!")
+	}
+
+	if val.(map[string]interface{})["Geolocation"].(map[string]interface{})["Lng"] != "89.22" {
+		t.Error("failed to access double multi-struct float to string!")
+	}
+
+	if val, ok := result["FavNumbers"]; !ok {
+		t.Error("failed to handle slice!")
+	} else if reflect.ValueOf(val).Index(0).Interface() != "15" {
+		t.Error("failed to handle slice!")
+	} else if reflect.ValueOf(val).Index(2).Interface() != "22" {
+		t.Error("failed to handle slice!")
 	}
 }

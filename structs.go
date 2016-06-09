@@ -11,9 +11,18 @@ import (
 )
 
 const (
-	ok        = "true"
-	statePost = "POST"
-	stateGet  = "GET"
+	ok           = "true"
+	statePost    = "POST"
+	stateGet     = "GET"
+	stateInt     = "int"
+	stateInt8    = "int8"
+	stateInt16   = "int16"
+	stateInt32   = "int32"
+	stateInt64   = "int64"
+	stateFloat32 = "float32"
+	stateFloat64 = "float64"
+	stateBool    = "bool"
+	stateString  = "string"
 )
 
 // BindRequest will scan your struct and bind the request Values / Body
@@ -42,30 +51,30 @@ func BindRequest(request *http.Request, target interface{}) error {
 		if len(values[tag]) > 0 {
 			values[tag][0] = strings.TrimSpace(values[tag][0])
 			switch t {
-			case "string":
+			case stateString:
 				val.Field(i).SetString(values[tag][0])
-			case "int64":
+			case stateInt64:
 				r, _ := strconv.ParseFloat(values[tag][0], 64)
 				val.Field(i).SetInt(int64(r))
-			case "int32":
+			case stateInt32:
 				r, _ := strconv.ParseFloat(values[tag][0], 64)
 				val.Field(i).SetInt(int64(r))
-			case "int16":
+			case stateInt16:
 				r, _ := strconv.ParseFloat(values[tag][0], 32)
 				val.Field(i).SetInt(int64(r))
-			case "int8":
+			case stateInt8:
 				r, _ := strconv.ParseFloat(values[tag][0], 32)
 				val.Field(i).SetInt(int64(r))
-			case "int":
+			case stateInt:
 				r, _ := strconv.ParseFloat(values[tag][0], 32)
 				val.Field(i).SetInt(int64(r))
-			case "float32":
+			case stateFloat32:
 				res, _ := strconv.ParseFloat(values[tag][0], 32)
 				val.Field(i).SetFloat(res)
-			case "float64":
+			case stateFloat64:
 				res, _ := strconv.ParseFloat(values[tag][0], 64)
 				val.Field(i).SetFloat(res)
-			case "bool":
+			case stateBool:
 				b := false
 				if values[tag][0] == "1" || values[tag][0] == ok {
 					b = true
@@ -98,35 +107,35 @@ func ValidateStruct(target interface{}) error {
 		}
 
 		switch t {
-		case "string":
+		case stateString:
 			if val.Field(i).Interface().(string) == "" {
 				return errors.New(tag + " is required.")
 			}
-		case "int":
+		case stateInt:
 			if val.Field(i).Interface().(int) == 0 {
 				return errors.New(tag + " is required.")
 			}
-		case "int8":
+		case stateInt8:
 			if val.Field(i).Interface().(int8) == 0 {
 				return errors.New(tag + " is required.")
 			}
-		case "int16":
+		case stateInt16:
 			if val.Field(i).Interface().(int16) == 0 {
 				return errors.New(tag + " is required.")
 			}
-		case "int32":
+		case stateInt32:
 			if val.Field(i).Interface().(int32) == 0 {
 				return errors.New(tag + " is required.")
 			}
-		case "int64":
+		case stateInt64:
 			if val.Field(i).Interface().(int64) == 0 {
 				return errors.New(tag + " is required.")
 			}
-		case "float32":
+		case stateFloat32:
 			if val.Field(i).Interface().(float32) == 0 {
 				return errors.New(tag + " is required.")
 			}
-		case "float64":
+		case stateFloat64:
 			if val.Field(i).Interface().(float64) == 0 {
 				return errors.New(tag + " is required.")
 			}
@@ -137,8 +146,15 @@ func ValidateStruct(target interface{}) error {
 }
 
 // ToMap returns map following the input struct.
-func ToMap(target interface{}) map[string]interface{} {
-	var key string
+// Second params is used to conver map values into string.
+func ToMap(target interface{}, opts ...bool) map[string]interface{} {
+	var (
+		key string
+		dt  bool
+	)
+	if len(opts) > 0 {
+		dt = opts[0]
+	}
 	result := make(map[string]interface{}, 1)
 	v := reflect.ValueOf(target)
 
@@ -156,13 +172,48 @@ func ToMap(target interface{}) map[string]interface{} {
 		if value == nil {
 			value = nil
 		}
-		if reflect.TypeOf(value).Name() == "" {
-			result[key] = ToMap(value)
+		if reflect.TypeOf(value).Kind() == reflect.Slice {
+			val := reflect.ValueOf(value)
+			tmp := make([]interface{}, val.Len())
+
+			for i := 0; i < val.Len(); i++ {
+				t := val.Index(i).Interface()
+				if dt {
+					t = toString(t)
+				}
+				tmp[i] = t
+			}
+			result[key] = tmp
+		} else if reflect.TypeOf(value).Name() == "" {
+			result[key] = ToMap(value, dt)
+		} else if dt {
+			result[key] = toString(value)
 		} else {
 			result[key] = value
 		}
-
 	}
 
 	return result
+}
+
+func toString(v interface{}) interface{} {
+
+	if reflect.TypeOf(v).Name() == stateInt {
+		return strconv.Itoa(v.(int))
+	} else if reflect.TypeOf(v).Name() == stateInt8 {
+		return strconv.Itoa(int(v.(int8)))
+	} else if reflect.TypeOf(v).Name() == stateInt16 {
+		return strconv.Itoa(int(v.(int16)))
+	} else if reflect.TypeOf(v).Name() == stateInt32 {
+		return strconv.Itoa(int(v.(int32)))
+	} else if reflect.TypeOf(v).Name() == stateInt64 {
+		return strconv.Itoa(int(v.(int64)))
+	} else if reflect.TypeOf(v).Name() == stateFloat32 {
+		return strconv.FormatFloat(float64(v.(float32)), 'f', 2, 32)
+	} else if reflect.TypeOf(v).Name() == stateFloat64 {
+		return strconv.FormatFloat(v.(float64), 'f', 2, 64)
+	} else if reflect.TypeOf(v).Name() == stateBool {
+		return v.(bool)
+	}
+	return v
 }
