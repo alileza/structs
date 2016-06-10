@@ -422,8 +422,6 @@ func TestToMapString(t *testing.T) {
 	testStruct.Address.Geolocation.Lng = 89.22
 
 	result := ToMap(testStruct, true)
-	b, _ := json.Marshal(result)
-	fmt.Println(string(b))
 
 	if _, ok := result["name"]; !ok {
 		t.Error("failed to use json tag!")
@@ -459,5 +457,108 @@ func TestToMapString(t *testing.T) {
 		t.Error("failed to handle slice!")
 	} else if reflect.ValueOf(val).Index(2).Interface() != "22" {
 		t.Error("failed to handle slice!")
+	}
+}
+
+func TestCopyStruct(t *testing.T) {
+	type Person struct {
+		Name       string
+		Age        int
+		FavNumbers []int
+		Address    struct {
+			Street string
+		}
+	}
+	type Student struct {
+		Name       string
+		Age        int
+		Score      float64
+		FavNumbers []int32
+		Address    struct {
+			PostalCode string
+			Street     string
+		}
+	}
+
+	x1 := &Student{
+		Name:       "Joni",
+		Age:        21,
+		Score:      87.44,
+		FavNumbers: []int32{87, 54, 22, 32},
+	}
+	x1.Address.Street = "Flamboyan"
+
+	x2 := Person{}
+
+	Copy(&x1, &x2)
+
+	if x1.Name != x2.Name {
+		t.Error("Copy string fail.")
+	}
+
+	if x1.Age != x2.Age {
+		t.Error("Copy int fail.")
+	}
+
+	if x1.Address.Street != x2.Address.Street {
+		t.Error("Copy int fail.")
+	}
+}
+
+func TestCopyComplexStruct(t *testing.T) {
+	type Address struct {
+		Street     string
+		PostalCode []int
+	}
+	type User struct {
+		Name    string
+		Address []*Address
+	}
+
+	type Target struct {
+		Name    string
+		Address []struct {
+			Street     string
+			PostalCode []int
+		}
+	}
+	x1Addr1 := &Address{
+		Street:     "Baker St",
+		PostalCode: []int{1, 5, 4, 1, 2},
+	}
+	x1Addr2 := &Address{
+		Street:     "Indah St",
+		PostalCode: []int{1, 5, 4, 1, 2},
+	}
+	x1 := &User{
+		Name:    "Anton",
+		Address: []*Address{x1Addr1, x1Addr2},
+	}
+	x2 := Target{}
+
+	err := Copy(&x1, &x2)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if x1.Address[0].Street != x2.Address[0].Street {
+		t.Error("Copy complex struct fail.")
+	}
+
+	if x1.Address[0].PostalCode[2] != x2.Address[0].PostalCode[2] {
+		t.Error("Copy complex struct slice fail.")
+	}
+}
+
+func TestCopySlice(t *testing.T) {
+	x1 := []int32{1, 3, 5, 6}
+	x2 := []int32{}
+
+	err := Copy(&x1, &x2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if x1[2] != x2[2] {
+		t.Error("Copy slice fail.")
 	}
 }

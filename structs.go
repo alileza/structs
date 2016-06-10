@@ -228,3 +228,17 @@ func toString(v interface{}) interface{} {
 	}
 	return v
 }
+
+func Copy(from interface{}, target interface{}) error {
+
+	if reflect.ValueOf(target).Kind() != reflect.Ptr {
+		return errors.New("Target must be a pointer.")
+	}
+
+	tmp, err := json.Marshal(from)
+	if err != nil {
+		return err
+	}
+	json.Unmarshal(tmp, &target)
+	return nil
+}

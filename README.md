@@ -2,6 +2,24 @@
 
 This library helps you to play around with structs, such as [bind incoming request into struct](#bind-request), validate struct, etc.
 
+```go
+import "github.com/alileza/structs"
+
+func main(){
+    // Bind request value into struct
+    err := structs.BindRequest(httpRequest, &target)
+    
+    // Validate struct value
+    err := structs.ValidateStruct(&MyStruct)
+    
+    // Convert struct to map
+    MyMap := structs.ToMap(MyStruct)
+    
+    // Copy struct/slice value to another
+    err := structs.Copy(MyStruct, &MyOtherStruct)
+}
+```
+
 ### Bind Request
 BindRequest will scan your struct and bind the request Values / Body into your struct according to `json` tag on struct.
 
@@ -16,3 +34,6 @@ ValidateStruct will validate struct if `required` tag is equal to true.
 ToMap returns map following the input struct.
 
 [Example Here](https://godoc.org/github.com/alileza/structs#example-BindRequest)
+
+### Copy
+Copy struct/slice/etc value to another
