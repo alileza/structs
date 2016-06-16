@@ -186,7 +186,7 @@ func ToMap(target interface{}, opts ...bool) map[string]interface{} {
 			for i := 0; i < val.Len(); i++ {
 				t := val.Index(i).Interface()
 				typ := reflect.TypeOf(t)
-				if typ.Name() == "" {
+				if typ.Kind() == reflect.Struct {
 					tmp[i] = ToMap(t, dt)
 				} else if dt {
 					tmp[i] = toString(t)
