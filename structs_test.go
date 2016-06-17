@@ -46,7 +46,7 @@ func ExampleBindRequest() {
 }
 
 func TestBindRequest(t *testing.T) {
-	req := &http.Request{}
+	req, _ := http.NewRequest("POST", "", nil)
 
 	var target bindRequestStruct
 	values := url.Values{}
@@ -195,6 +195,7 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	req.Method = "POST"
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_int8" : 123 }`)))
+	req.Header.Set("Content-Type", "application/json")
 	BindRequest(req, &target)
 	if target.TInt8 != 123 {
 		t.Error("post t_int8 read fail !")
@@ -203,6 +204,7 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	req.Method = "POST"
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_int64" : 93934123 }`)))
+	req.Header.Set("Content-Type", "application/json")
 	BindRequest(req, &target)
 	if target.TInt64 != 93934123 {
 		t.Error("post t_int64 read fail !")
@@ -211,6 +213,7 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	req.Method = "POST"
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_bool" : true }`)))
+	req.Header.Set("Content-Type", "application/json")
 	BindRequest(req, &target)
 	if target.TBool != true {
 		t.Error("post t_bool read fail !")
@@ -219,6 +222,7 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	req.Method = "POST"
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_bool" : false }`)))
+	req.Header.Set("Content-Type", "application/json")
 	BindRequest(req, &target)
 	if target.TBool != false {
 		t.Error("post t_bool read fail !")
@@ -235,6 +239,7 @@ func TestBindRequest(t *testing.T) {
 	target = bindRequestStruct{}
 	req.Method = "POST"
 	req.Body = ioutil.NopCloser(bytes.NewReader([]byte(`{"t_string" : "123.3223" }`)))
+	req.Header.Set("Content-Type", "application/json")
 	BindRequest(req, &target)
 	if target.TString != "123.3223" {
 		t.Error("post t_string read fail !")

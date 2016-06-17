@@ -28,7 +28,9 @@ const (
 // BindRequest will scan your struct and bind the request Values / Body
 // into your struct according to `json` tag on struct.
 func BindRequest(request *http.Request, target interface{}) error {
-	if request.Method == statePost {
+	contentType := request.Header.Get("Content-Type")
+
+	if request.Method == statePost && contentType == "application/json" {
 		body, _ := ioutil.ReadAll(request.Body)
 		json.Unmarshal(body, &target)
 		return nil
