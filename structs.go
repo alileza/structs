@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -25,6 +26,13 @@ const (
 	stateString  = "string"
 )
 
+func getOppositeMethod(method string) string {
+	if method == stateGet {
+		return statePost
+	}
+	return stateGet
+}
+
 // BindRequest will scan your struct and bind the request Values / Body
 // into your struct according to `json` tag on struct.
 func BindRequest(request *http.Request, target interface{}) error {
@@ -37,7 +45,10 @@ func BindRequest(request *http.Request, target interface{}) error {
 	}
 
 	request.ParseForm()
-	values := request.Form
+	valuesMap := map[string]url.Values{
+		stateGet:  request.Form,
+		statePost: request.PostForm,
+	}
 
 	val := reflect.ValueOf(target)
 
@@ -50,7 +61,44 @@ func BindRequest(request *http.Request, target interface{}) error {
 		typeField := val.Type().Field(i)
 		tag := typeField.Tag.Get("json")
 		t := typeField.Type.String()
-		if len(values[tag]) > 0 {
+		if len(valuesMap[request.Method][tag]) > 0 {
+			values := valuesMap[request.Method]
+			values[tag][0] = strings.TrimSpace(values[tag][0])
+			switch t {
+			case stateString:
+				val.Field(i).SetString(values[tag][0])
+			case stateInt64:
+				r, _ := strconv.ParseFloat(values[tag][0], 64)
+				val.Field(i).SetInt(int64(r))
+			case stateInt32:
+				r, _ := strconv.ParseFloat(values[tag][0], 64)
+				val.Field(i).SetInt(int64(r))
+			case stateInt16:
+				r, _ := strconv.ParseFloat(values[tag][0], 32)
+				val.Field(i).SetInt(int64(r))
+			case stateInt8:
+				r, _ := strconv.ParseFloat(values[tag][0], 32)
+				val.Field(i).SetInt(int64(r))
+			case stateInt:
+				r, _ := strconv.ParseFloat(values[tag][0], 32)
+				val.Field(i).SetInt(int64(r))
+			case stateFloat32:
+				res, _ := strconv.ParseFloat(values[tag][0], 32)
+				val.Field(i).SetFloat(res)
+			case stateFloat64:
+				res, _ := strconv.ParseFloat(values[tag][0], 64)
+				val.Field(i).SetFloat(res)
+			case stateBool:
+				b := false
+				if values[tag][0] == "1" || values[tag][0] == ok {
+					b = true
+				}
+				val.Field(i).SetBool(b)
+			default:
+				return errors.New(t + " type is not supported. You can skip this binding by changing json tag value to `-`")
+			}
+		} else if len(valuesMap[getOppositeMethod(request.Method)][tag]) > 0 {
+			values := valuesMap[getOppositeMethod(request.Method)]
 			values[tag][0] = strings.TrimSpace(values[tag][0])
 			switch t {
 			case stateString:
